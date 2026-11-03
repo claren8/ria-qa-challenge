@@ -53,6 +53,7 @@ Each test opens its own Chrome window, so a full run takes a few minutes. The ru
 - **Clearing "You send" keeps the old result.** After deleting the amount, "They receive" and "Total to pay" kept the previous values (3,331.35 and 25,000 CLP). I saw it once and did not check whether it is intended.
 - **Dominican Republic appears twice in the full destination list** (USD, and DOP at the end). I did not investigate it.
 - **A promotional rate is shown next to a struck-through one** (0.133254 vs 0.13093). The result on screen matches the promotional rate. The promotion may vary between sessions, which is one reason the tests never hardcode a converted amount.
+- **Very large amounts show a different error.** Typing digits only: `11111111`, `1000000000` and `2147483647` show "Maximum is 10,000,000 CLP", but 11-digit values such as `10000000000` and `50000000000` show "Unable to get rates. Please try again." instead, in English on a Spanish page, with the rate showing "—". It looks like the maximum validation does not catch very large values before the rates request is made. I did not find the exact cutoff or the cause.
 
 ### Things that made the tests unstable, and what I did
 
