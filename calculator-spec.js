@@ -4,7 +4,12 @@ const assert = require('assert');
 const URL = 'https://www.riamoneytransfer.com/en-cl/';
 const XPATH_TASA = "//*[@id='rate-title']/following-sibling::div//span[contains(text(),'HTG')]";
 
+
+
 // -------- FUNCIONES ---------
+
+
+
 async function leerConversion(driver) {
     const textoTasa = await driver.findElement(By.xpath(XPATH_TASA)).getText();
     const valorTo = await driver.findElement(By.id('amount-to')).getAttribute('value');
@@ -40,6 +45,25 @@ async function elegirHaitiHtg(driver) {
         return false;
     }, 10000);
     await htg.click();
+}
+
+async function irASecure(driver) {
+    const boton = await driver.wait(until.elementLocated(By.css('a[href^="https://secure.riamoneytransfer.com/"]:not([href*="login"]):not([href*="registration"])')), 10000);
+    await boton.click();
+    await driver.wait(until.urlContains('secure.riamoneytransfer.com'), 10000);
+    await rechazarCookies(driver);
+}
+
+
+async function rechazarCookies(driver) {
+    try {
+        const rechazar = await driver.wait(until.elementLocated(By.css('button[analytics-name="consent-manager-reject-cookies"]')), 5000);
+        await driver.wait(until.elementIsVisible(rechazar), 5000);
+        await rechazar.click();
+        await driver.wait(until.stalenessOf(rechazar), 5000);
+    } catch (e) {
+        if (e.name !== 'TimeoutError') throw e;
+    }
 }
 
 // ---------- TESTS ----------
@@ -145,6 +169,36 @@ async function test5(driver) {
 }
 
 
+async function test6(driver) {
+    await irASecure(driver);
+    const url = await driver.getCurrentUrl();
+    assert.ok(url.includes('secure.riamoneytransfer.com'), 'URL no pertenece al dominio secure');
+}
+
+
+async function test7(driver) {
+    await irASecure(driver);
+
+    const correo = await driver.wait(until.elementLocated(By.css('input[analytics-name="login-email-input"]')), 10000);
+    const clave = await driver.wait(until.elementLocated(By.css('input[analytics-name="login-password"]')), 10000);
+    const registro = await driver.wait(until.elementLocated(By.css('a[analytics-name="login-register"]')), 10000);
+
+    assert.ok(await correo.isDisplayed(), 'El campo de correo o teléfono no está visible');
+    assert.ok(await clave.isDisplayed(), 'El campo de contraseña no está visible');
+    assert.ok(await registro.isDisplayed(), 'El link de registro no está visible');
+}
+
+async function test8(driver) {
+    await irASecure(driver);
+
+    const registro = await driver.wait(until.elementLocated(By.css('a[analytics-name="login-register"]')), 10000);
+    await registro.click();
+    await driver.wait(until.urlContains('/registration'), 10000);
+
+    const url = await driver.getCurrentUrl();
+    assert.ok(url.includes('/registration'), 'No es la URL de registro seguro de RIA');
+}
+
 
 // ---------- CORREDOR ----------
 
@@ -168,7 +222,9 @@ async function correrTest(nombre, fn) {
     await correrTest('Test 3: el selector de destino abre, selecciona Haiti, selecciona HTG y luego cierra el modal', test3);
     await correrTest('Test 4: La multiplicacion de la tasa mostrada por el monto ingresado coincide con el mostrado por la calculadora', test4);
     await correrTest('Test 5: El resultado cambia al ingresar montos distintos', test5);
-
+    await correrTest('Test 6: La URL a la que ingresa forma parte de la red "Secure"', test6);
+    await correrTest('Test 7: "Los campos de usuario, clave y registro son visibles"', test7);
+    await correrTest('Test 8: "Hacer click en Registro te dirige a la pagina segura de registro de RIA"', test8);
 
 
 })();
